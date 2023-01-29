@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='md2notion',
+    name='md2notion-aaron-fork',
     version='2.4.1',
     description='Utilities for importing Markdown files to Notion.so',
     long_description=open('README.md', 'r').read(),

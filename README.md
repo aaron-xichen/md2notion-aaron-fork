@@ -5,6 +5,11 @@
     <a href="https://cobertos.com" target="_blank"><img alt="twitter" src="https://img.shields.io/badge/website-cobertos.com-888888.svg"></a>
 </p>
 
+# Modification
+fork from [md2notion](https://github.com/Cobertos/md2notion), add following features
+- add `block_sleep_time` to indicate sleep time(s) after each block is uploaed
+- add `file_sleep_time` to indicate sleep time(s) after each file is uploaded
+
 # Notion.so Markdown Importer
 
 An importer for Markdown files to [Notion.so](https://notion.so) using [`notion-py`](https://github.com/jamalex/notion-py)

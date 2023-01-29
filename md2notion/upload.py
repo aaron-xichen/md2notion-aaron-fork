@@ -2,6 +2,7 @@ import io
 import requests
 import os.path
 import glob
+import time
 import argparse
 import sys
 import re
@@ -47,7 +48,7 @@ def relativePathForMarkdownUrl(url, mdFilePath):
             pass
     return None
 
-def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
+def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None, block_sleep_time=30, file_sleep_time=600):
     """
     Uploads a single blockDescriptor for NotionPyRenderer as the child of another block
     and does any post processing for Markdown importing
@@ -58,6 +59,7 @@ def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
 
     @todo Make mdFilePath optional and don't do searching if not provided
     """
+    time.sleep(block_sleep_time)
     blockClass = blockDescriptor["type"]
     del blockDescriptor["type"]
     if "schema" in blockDescriptor:
@@ -89,6 +91,7 @@ def uploadBlock(blockDescriptor, blockParent, mdFilePath, imagePathFunc=None):
 
         print(f"Uploading file '{imgSrc}'")
         newBlock.upload_file(str(imgSrc))
+        time.sleep(file_sleep_time)
     elif isinstance(newBlock, CollectionViewBlock):
         #We should have generated a schema and rows for this one
         notionClient = blockParent._client #Hacky internals stuff...
@@ -120,7 +123,7 @@ def convert(mdFile, notionPyRendererCls=NotionPyRenderer):
     """
     return mistletoe.markdown(mdFile, notionPyRendererCls)
 
-def upload(mdFile, notionPage, imagePathFunc=None, notionPyRendererCls=NotionPyRenderer):
+def upload(mdFile, notionPage, imagePathFunc=None, notionPyRendererCls=NotionPyRenderer, block_sleep_time=30, file_sleep_time=600):
     """
     Uploads a single markdown file at mdFilePath to Notion.so as a child of
     notionPage.
@@ -139,7 +142,7 @@ def upload(mdFile, notionPage, imagePathFunc=None, notionPyRendererCls=NotionPyR
     for idx, blockDescriptor in enumerate(rendered):
         pct = (idx+1)/len(rendered) * 100
         print(f"\rUploading {blockDescriptor['type'].__name__}, {idx+1}/{len(rendered)} ({pct:.1f}%)", end='')
-        uploadBlock(blockDescriptor, notionPage, mdFile.name, imagePathFunc)
+        uploadBlock(blockDescriptor, notionPage, mdFile.name, imagePathFunc, block_sleep_time=block_sleep_time, file_sleep_time=file_sleep_time)
 
 
 def filesFromPathsUrls(paths):
@@ -184,8 +187,13 @@ def cli(argv):
                         help="Upload images in HTML <img> tags (disabled by default)")
     parser.add_argument('--latex', action='store_true', default=False,
                         help="Support for latex inline ($..$) and block ($$..$$) equations (disabled by default)")
+    parser.add_argument('--block_sleep_time', type=int, default=30,
+                        help='sleep time in seconds after each block is uploaded')
+    parser.add_argument('--file_sleep_time', type=int, default=600,
+                        help='sleep time in seconds after each image is uploaded')
 
     args = parser.parse_args(argv)
+    print("==============")
 
     notionPyRendererCls = NotionPyRenderer
     if args.html_img:
@@ -198,6 +206,8 @@ def cli(argv):
     print("Getting target PageBlock...")
     page = client.get_block(args.page_url)
     uploadPage = page
+    print(f"block sleep time: {args.block_sleep_time}s")
+    print(f"file sleep time: {args.file_sleep_time}s")
 
     for mdPath, mdFileName, mdFile in filesFromPathsUrls(args.md_path_url):
         if args.mode == 'create' or args.mode == 'clear':
@@ -209,7 +219,7 @@ def cli(argv):
             # Make the new page in Notion.so
             uploadPage = page.children.add_new(PageBlock, title=mdFileName)
         print(f"Uploading {mdPath} to Notion.so at page {uploadPage.title}...")
-        upload(mdFile, uploadPage, None, notionPyRendererCls)
+        upload(mdFile, uploadPage, None, notionPyRendererCls, args.block_sleep_time, args.file_sleep_time)
 
 
 if __name__ == "__main__":

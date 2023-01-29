@@ -12,4 +12,5 @@ venv-ci/
 .pytest_cache/
 .cache/
 .coverage
+*.sh
 htmlcov
